@@ -1,0 +1,33 @@
+name: Prepare WeexGram
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Extract WeexGram kit
+        run: |
+          unzip -q WeexGram-kit.zip -d "$RUNNER_TEMP/weexgram-kit"
+
+      - name: Select compatible source version
+        run: |
+          git checkout --detach 0f1c6aa243d8509339f528f35887b6d91d051a03
+
+      - name: Apply WeexGram code
+        run: |
+          python3 "$RUNNER_TEMP/weexgram-kit/WeexGram-kit/apply.py" "$GITHUB_WORKSPACE"
+          git diff --check
+
+      - name: Report
+        run: |
+          echo "WeexGram code applied successfully." >> "$GITHUB_STEP_SUMMARY"
+          echo "This checks integration only. APK is not built yet." >> "$GITHUB_STEP_SUMMARY"
