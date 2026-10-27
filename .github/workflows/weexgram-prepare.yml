@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Download repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Extract WeexGram kit
         run: |
@@ -30,4 +32,4 @@ jobs:
       - name: Report
         run: |
           echo "WeexGram code applied successfully." >> "$GITHUB_STEP_SUMMARY"
-          echo "This checks integration only. APK is not built yet." >> "$GITHUB_STEP_SUMMARY"
+          echo "APK is not built yet." >> "$GITHUB_STEP_SUMMARY"
