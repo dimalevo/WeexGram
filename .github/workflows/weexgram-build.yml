@@ -1,0 +1,76 @@
+name: WeexGram build (test APK)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h /
+
+      - name: Checkout your fork (fork)
+        uses: actions/checkout@v4
+        with:
+          path: fork
+
+      - name: Clone pinned NimarkoGram base (src)
+        run: |
+          git clone https://github.com/Ettacent/NimarkoGram.git src
+          cd src
+          git checkout 0f1c6aa243d8509339f528f35887b6d91d051a03
+          git status --short
+
+      - name: Unpack kit and apply WeexGram
+        run: |
+          unzip -q "$GITHUB_WORKSPACE/fork/WeexGram-kit.zip" -d "$RUNNER_TEMP"
+          python3 "$RUNNER_TEMP/WeexGram-kit/apply.py" "$GITHUB_WORKSPACE/src"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK components
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
+
+      - name: Init submodules
+        working-directory: src
+        run: git submodule update --init --recursive
+
+      - name: Build APK
+        working-directory: src
+        env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          NIMARKO_FIREBASE_ENABLED: 'false'
+          WEEX_WORKERS: '2'
+        run: |
+          set -euo pipefail
+          export NIMARKO_BUILD_PYTHON="$(command -v python3.11)"
+          bash weexgram/build-local.sh "$PWD"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeexGram-test-apk
+          path: src/weexgram-out/
+          if-no-files-found: error
