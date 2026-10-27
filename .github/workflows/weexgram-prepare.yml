@@ -1,4 +1,4 @@
-name: Prepare WeexGram
+name: Prepare and Build WeexGram
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  prepare:
+  build:
     runs-on: ubuntu-24.04
 
     steps:
@@ -29,7 +29,25 @@ jobs:
           python3 "$RUNNER_TEMP/weexgram-kit/WeexGram-kit/apply.py" "$GITHUB_WORKSPACE"
           git diff --check
 
-      - name: Report
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK
         run: |
-          echo "WeexGram code applied successfully." >> "$GITHUB_STEP_SUMMARY"
-          echo "APK is not built yet." >> "$GITHUB_STEP_SUMMARY"
+          cp private.properties.example private.properties
+          echo "TELEGRAM_API_ID=2040" >> private.properties
+          echo "TELEGRAM_API_HASH=b18441a1ff607e10a989891a5462e627" >> private.properties
+          chmod +x gradlew
+          ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone -PngArm64Only --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeexGram-APK
+          path: TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/app.apk
