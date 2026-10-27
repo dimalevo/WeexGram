@@ -44,13 +44,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install SDK components
         run: |
-          yes | sdkmanager --licenses > /dev/null
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          SM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SM" || SM="$(command -v sdkmanager)"
+          yes | "$SM" --licenses > /dev/null || true
+          "$SM" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;26.3.11579264' 'cmake;3.22.1'
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
 
       - name: Init submodules
         working-directory: src
@@ -66,6 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           export NIMARKO_BUILD_PYTHON="$(command -v python3.11)"
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           bash weexgram/build-local.sh "$PWD"
 
       - name: Upload APK
