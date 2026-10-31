@@ -62,12 +62,19 @@ jobs:
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          KEYSTORE_B64: ${{ secrets.WEEX_KEYSTORE_B64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.WEEX_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.WEEX_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.WEEX_KEY_PASSWORD }}
           NIMARKO_FIREBASE_ENABLED: 'false'
           WEEX_WORKERS: '2'
         run: |
           set -euo pipefail
           export NIMARKO_BUILD_PYTHON="$(command -v python3.11)"
           export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          mkdir -p .weexgram-private
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > .weexgram-private/release.jks
+          export RELEASE_STORE_FILE="$PWD/.weexgram-private/release.jks"
           bash weexgram/build-local.sh "$PWD"
 
       - name: Upload APK
